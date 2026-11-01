@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>COMP7802 MC Drill</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Noto+Sans+HK:wght@400;600;800&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+/* Layout: one column, question card on top, calculator as a bottom sheet that never covers the options it is needed for */
+:root{
+  --bg:#eef0ec; --surface:#fbfbf8; --ink:#1c2321; --muted:#5d6762; --line:#d5d9d3;
+  --accent:#1f5f8b; --accent-ink:#ffffff; --accent-soft:#dfe9f1;
+  --good:#1e7a4c; --good-soft:#dcefe3; --bad:#b2402f; --bad-soft:#f6e0db;
+  --key:#e3e6e0; --key-op:#cfd8de; --key-eq:#1f5f8b; --lcd:#dfe5d6; --lcd-ink:#1b2a1e;
+  --display:"Archivo","Noto Sans HK",system-ui,sans-serif;
+  --body:"Noto Sans HK",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa59f; --line:#323b37;
+  --accent:#6fb0dc; --accent-ink:#0e1a22; --accent-soft:#1d3342;
+  --good:#5cc48d; --good-soft:#163526; --bad:#ee8b78; --bad-soft:#3d201a;
+  --key:#2a322e; --key-op:#2f3d46; --key-eq:#6fb0dc; --lcd:#1f2b22; --lcd-ink:#cfe8cf; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1d2421; --ink:#e6ebe7; --muted:#9aa59f; --line:#323b37;
+  --accent:#6fb0dc; --accent-ink:#0e1a22; --accent-soft:#1d3342;
+  --good:#5cc48d; --good-soft:#163526; --bad:#ee8b78; --bad-soft:#3d201a;
+  --key:#2a322e; --key-op:#2f3d46; --key-eq:#6fb0dc; --lcd:#1f2b22; --lcd-ink:#cfe8cf; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:10px;padding-block:10px}
+.brand{font-family:var(--display);font-weight:800;font-size:17px;letter-spacing:.01em;white-space:nowrap}
+.brand small{display:block;font-family:var(--mono);font-weight:400;font-size:11px;color:var(--muted);letter-spacing:.04em}
+.bar .sp{flex:1}
+.pill{font-family:var(--mono);font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);white-space:nowrap;font-variant-numeric:tabular-nums}
+.iconb{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px;font-size:14px;white-space:nowrap}
+
+main .wrap{padding-block:16px 140px}
+
+/* home */
+h1{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.15;margin:4px 0 6px;text-wrap:balance}
+.lede{color:var(--muted);margin:0 0 16px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.stat b{display:block;font-family:var(--mono);font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.lbl{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;font-weight:600}
+.sets{display:grid;gap:8px}
+.set{display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;width:100%}
+.set .t{flex:1;min-width:0}
+.set .t b{display:block;font-weight:700}
+.set .t span{font-size:13px;color:var(--muted)}
+.set .n{font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.set .bar2{height:4px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}
+.set .bar2 i{display:block;height:100%;background:var(--good)}
+.set[disabled]{opacity:.5;cursor:default}
+.opts-row{display:flex;flex-wrap:wrap;gap:8px}
+.tog{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px}
+.tog[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.reset{margin-top:22px;font-size:13px;color:var(--muted);background:none;border:0;text-decoration:underline;padding:0}
+
+/* question */
+.qhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:12px;padding:3px 9px;border-radius:6px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.chip.k{font-family:var(--mono);color:var(--accent);border-color:var(--accent-soft);background:var(--accent-soft)}
+.prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:14px}
+.prog i{display:block;height:100%;background:var(--accent);transition:width .25s}
+.q{font-size:18px;line-height:1.55;margin:0 0 14px;font-weight:600}
+.q .num{font-family:var(--mono)}
+.opts{display:grid;gap:8px}
+.opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;min-height:52px}
+.opt .l{font-family:var(--mono);font-weight:700;color:var(--muted);flex:0 0 auto;width:18px}
+.opt .v{min-width:0;font-variant-numeric:tabular-nums}
+.opt.ok{border-color:var(--good);background:var(--good-soft)}
+.opt.ok .l{color:var(--good)}
+.opt.no{border-color:var(--bad);background:var(--bad-soft)}
+.opt.no .l{color:var(--bad)}
+.opt[disabled]{cursor:default}
+.why{margin-top:14px;border-radius:12px;padding:12px 14px;line-height:1.7;background:var(--surface);border:1px solid var(--line)}
+.why .verdict{font-weight:800;margin-bottom:4px}
+.why.good .verdict{color:var(--good)}
+.why.bad .verdict{color:var(--bad)}
+.why b{color:var(--accent)}
+
+/* bottom action bar */
+.act{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.act .wrap{display:flex;gap:8px;padding-block:10px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;font-weight:700;font-size:15px;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
+.btn.calc{display:flex;align-items:center;gap:6px}
+
+/* calculator sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);transform:translateY(105%);transition:transform .22s ease;padding-bottom:env(safe-area-inset-bottom,0px)}
+.sheet.open{transform:none}
+.sheet:not(.open){bottom:0!important}
+.sheet .wrap{padding-block:10px 12px}
+.sh-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sh-top b{font-family:var(--display);font-size:15px;flex:1}
+.lcd{background:var(--lcd);color:var(--lcd-ink);border-radius:10px;padding:8px 12px;font-family:var(--mono);min-height:68px;display:flex;flex-direction:column;justify-content:flex-end;gap:2px;overflow:hidden}
+.lcd .ex{font-size:14px;opacity:.75;word-break:break-all;min-height:20px}
+.lcd .rs{font-size:24px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;word-break:break-all}
+.lcd .rs.err{font-size:14px;font-weight:600}
+.tape{display:flex;gap:6px;overflow-x:auto;padding:6px 0 2px;scrollbar-width:none}
+.tape button{flex:0 0 auto;font-family:var(--mono);font-size:12px;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:3px 9px;font-variant-numeric:tabular-nums}
+.keys{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:6px}
+.keys button{border:0;border-radius:9px;background:var(--key);padding:0;height:44px;font-family:var(--mono);font-size:16px;font-weight:600}
+.keys .op{background:var(--key-op)}
+.keys .fn{font-size:13px}
+.keys .eq{background:var(--key-eq);color:var(--accent-ink)}
+.keys .w2{grid-column:span 2}
+.keys button:active{filter:brightness(.92)}
+
+/* result */
+.score{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;margin:8px 0}
+.wrongs{display:grid;gap:6px;margin-top:10px}
+.wrongs div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:14px}
+.wrongs div span{font-family:var(--mono);color:var(--muted);margin-right:6px}
+
+@media (prefers-reduced-motion: reduce){.sheet,.prog i{transition:none}}
+@media (max-width:380px){.keys button{height:40px;font-size:15px}.q{font-size:17px}}
+</style>
+
+<header class="bar"><div class="wrap">
+  <div class="brand">COMP7802 MC<small>L1 · L2 · L3 3.1–3.2</small></div>
+  <span class="sp"></span>
+  <span class="pill" id="pill"></span>
+  <button class="iconb" id="homeBtn" type="button" hidden>選題</button>
+</div></header>
+
+<main><div class="wrap" id="view"></div></main>
+
+<div class="act" id="act" hidden><div class="wrap">
+  <button class="btn" id="prevB" type="button" aria-label="上一題">◀</button>
+  <button class="btn calc" id="calcB" type="button">🧮 計數機</button>
+  <button class="btn pri" id="nextB" type="button">下一題 ▶</button>
+</div></div>
+
+<section class="sheet" id="sheet" aria-label="Calculator">
+ <div class="wrap">
+  <div class="sh-top"><b>計數機</b><button class="iconb" id="useB" type="button" title="Copy result">複製答案</button><button class="iconb" id="closeC" type="button">收起 ▾</button></div>
+  <div class="lcd"><div class="ex" id="cEx"></div><div class="rs" id="cRs">0</div></div>
+  <div class="tape" id="tape" aria-label="Recent results"></div>
+  <div class="keys" id="keys"></div>
+ </div>
+</section>
+
+<script id="data" type="application/json">[{"id": "1.1-1", "lec": "L1", "kp": "1.1", "topic": "單利", "q": "Interest on $1,000,000 at 10% p.a. for 182 days (USD, ACT/360)?", "o": ["$50,000.00", "$50,555.56", "$49,863.01", "$100,000.00"], "a": 1, "why": "美金用 360 日：1,000,000 × 0.10 × 182/360 = 50,555.56。$50,000 係當咗半年 = 0.5 年。"}, {"id": "1.1-2", "lec": "L1", "kp": "1.1", "topic": "單利", "q": "A rate quoted as \"10% for 6 months\" means:", "o": ["10% earned over the 6 months", "10% per annum, about 5% over the 6 months", "20% per annum"], "a": 1, "why": "報價利率永遠係年利率（per annum），六個月大約攞一半。"}, {"id": "1.1-3", "lec": "L1", "kp": "1.1", "topic": "單利", "q": "$100 at 4% p.a. simple interest for 146 days (ACT/365). FV?", "o": ["$104.00", "$101.60", "$100.16", "$101.46"], "a": 1, "why": "100 × (1 + 0.04 × 146/365) = 101.60（slide 19）。"}, {"id": "1.1-4", "lec": "L1", "kp": "1.1", "topic": "單利", "q": "Slide 10: HK$1,000,000 deposited for 31 days at 0.25% (ACT/365). Interest at maturity?", "o": ["HK$212.33", "HK$2,500.00", "HK$208.33", "HK$2,250.68"], "a": 0, "why": "1,000,000 × 0.25/100 × 31/365 = 212.33。HK$2,250.68 係舊 screenshot 用 2.65% 計。"}, {"id": "1.1-5", "lec": "L1", "kp": "1.1", "topic": "單利", "q": "HKD money-market deals use which day count?", "o": ["ACT/360", "ACT/365", "30/360"], "a": 1, "why": "港幣、英鎊、星加坡元用 ACT/365；美金、歐元用 ACT/360。"}, {"id": "1.2-1", "lec": "L1", "kp": "1.2", "topic": "複利", "q": "$100 at 4% compounded annually for 2 years. FV?", "o": ["$108.00", "$108.16", "$104.16", "$108.24"], "a": 1, "why": "100 × 1.04² = 108.16。$108 係單利。"}, {"id": "1.2-2", "lec": "L1", "kp": "1.2", "topic": "複利", "q": "$1,000 at 5% compounded annually for 3 years. FV?", "o": ["$1,150.00", "$1,157.63", "$1,050.00", "$1,162.50"], "a": 1, "why": "1000 × 1.05³ = 1,157.63。"}, {"id": "1.2-3", "lec": "L1", "kp": "1.2", "topic": "複利", "q": "On $100 at 4% for 2 years, compound beats simple by:", "o": ["$0.00", "$0.16", "$4.00", "$0.32"], "a": 1, "why": "多出嚟嘅 0.16 就係第一年利息 $4 再賺 4% 嘅利息。"}, {"id": "1.3-1", "lec": "L1", "kp": "1.3", "topic": "名義利率 vs 實際利率", "q": "8% nominal compounded monthly. Effective annual rate?", "o": ["8.00%", "8.24%", "8.30%", "8.33%"], "a": 2, "why": "(1 + 0.08/12)^12 − 1 = 8.30%。"}, {"id": "1.3-2", "lec": "L1", "kp": "1.3", "topic": "名義利率 vs 實際利率", "q": "A 1-year deposit pays 5% at maturity. What nominal rate, compounded quarterly, gives the same return?", "o": ["5.000%", "4.909%", "5.095%", "1.250%"], "a": 1, "why": "4 × (1.05^(1/4) − 1) = 4.909%（slide 6）。複利越密，nominal 要越低。"}, {"id": "1.3-3", "lec": "L1", "kp": "1.3", "topic": "名義利率 vs 實際利率", "q": "4% p.a. paid quarterly and reinvested. Effective rate?", "o": ["4.00%", "4.06%", "4.16%", "1.00%"], "a": 1, "why": "1.01⁴ − 1 = 4.06%（slide 5）。"}, {"id": "1.3-4", "lec": "L1", "kp": "1.3", "topic": "名義利率 vs 實際利率", "q": "Two deposits give exactly the same money after 1 year. One pays interest once a year; the other compounds monthly. Which quoted nominal rate is lower?", "o": ["The annual-pay rate", "The monthly-compounded rate", "They are equal"], "a": 1, "why": "每月複利會賺利息嘅利息，所以要達到同一結果，報價利率可以低啲。"}, {"id": "1.4-1", "lec": "L1", "kp": "1.4", "topic": "短期利率 → 年複利 (Compound yield)", "q": "A 120-day investment yields 7% (ACT/365). Annually compounded equivalent?", "o": ["7.0000%", "7.1658%", "7.2500%", "6.8400%"], "a": 1, "why": "(1 + 0.07 × 120/365)^(365/120) − 1 = 7.1658%。"}, {"id": "1.4-2", "lec": "L1", "kp": "1.4", "topic": "短期利率 → 年複利 (Compound yield)", "q": "153-day rate 10.2%. Which expression gives the compound yield?", "o": ["(1 + 0.102)^(153/365) − 1", "(1 + 0.102 × 153/365)^(365/153) − 1", "0.102 × 365/153"], "a": 1, "why": "先計一期增長（單利），再滾 365/153 次。"}, {"id": "1.4-3", "lec": "L1", "kp": "1.4", "topic": "短期利率 → 年複利 (Compound yield)", "q": "Why is the compound yield higher than the quoted short-term rate?", "o": ["Because of the day count", "Because interest is reinvested each period", "Because of credit risk"], "a": 1, "why": "每期收到嘅利息再投資，賺埋利息嘅利息。"}, {"id": "1.5-1", "lec": "L1", "kp": "1.5", "topic": "每日複利同連續複利", "q": "Continuously compounded equivalent of 6% annual?", "o": ["6.0000%", "5.8269%", "6.1837%", "5.9126%"], "a": 1, "why": "ln(1.06) = 5.8269%。5.9126% 係半年複利。"}, {"id": "1.5-2", "lec": "L1", "kp": "1.5", "topic": "每日複利同連續複利", "q": "A continuously compounded rate of 10% equals what annual rate?", "o": ["10.0000%", "9.5310%", "10.5171%", "11.0000%"], "a": 2, "why": "i = e^0.10 − 1 = 10.5171%。"}, {"id": "1.5-3", "lec": "L1", "kp": "1.5", "topic": "每日複利同連續複利", "q": "Four quotes all give the same effective annual return of 9.3%: compounded annually, monthly, daily and continuously. Which quoted rate is the LOWEST?", "o": ["Annual", "Monthly", "Daily", "Continuous"], "a": 3, "why": "複利越密，報價越低；連續複利最低（8.8926%）。"}, {"id": "1.6-1", "lec": "L1", "kp": "1.6", "topic": "由價錢計收益率", "q": "Pay $980, receive $1,000 after 91 days. Simple yield (ACT/365)?", "o": ["2.0408%", "8.1857%", "8.4407%", "8.0000%"], "a": 1, "why": "(1000/980 − 1) × 365/91 = 8.1857%。2.04% 係未年化。"}, {"id": "1.6-2", "lec": "L1", "kp": "1.6", "topic": "由價錢計收益率", "q": "Which is the simple yield formula?", "o": ["(FV/PV − 1) × year/days", "(FV/PV)^(year/days) − 1", "(FV − PV) × days/year"], "a": 0, "why": "單利收益率 = 期間回報 × year/days；次方嗰條係 compound yield。"}, {"id": "1.6-3", "lec": "L1", "kp": "1.6", "topic": "由價錢計收益率", "q": "Two investments cost the same and make the same dollar gain, but investment X lasts fewer days. Compared with the other, X's simple yield is:", "o": ["Higher", "Lower", "Unchanged"], "a": 0, "why": "乘 365/days，日數越少，年化收益越高。"}, {"id": "1.7-1", "lec": "L1", "kp": "1.7", "topic": "折現因子", "q": "3-year discount factor at 8.5% compounded annually?", "o": ["0.7450", "0.7829", "0.9217", "0.8500"], "a": 1, "why": "1/1.085³ = 0.7829（slide 28）。"}, {"id": "1.7-2", "lec": "L1", "kp": "1.7", "topic": "折現因子", "q": "PV of $1,000,000 in 90 days at 5% simple, ACT/360?", "o": ["$987,654.32", "$950,000.00", "$987,500.00", "$987,821.38"], "a": 0, "why": "短期用單利 DF：1/(1 + 0.05 × 90/360) = 0.987654。"}, {"id": "1.7-3", "lec": "L1", "kp": "1.7", "topic": "折現因子", "q": "Discount factor with continuous compounding:", "o": ["1/(1 + r)^t", "e^(−r × t)", "1 − r × t"], "a": 1, "why": "連續複利嘅 DF = e^(−r × days/year)。"}, {"id": "1.7-4", "lec": "L1", "kp": "1.7", "topic": "折現因子", "q": "If the interest rate rises, the discount factor:", "o": ["Rises", "Falls", "Stays the same"], "a": 1, "why": "分母 (1 + i) 變大，DF 變細，PV 跌。"}, {"id": "1.8-1", "lec": "L1", "kp": "1.8", "topic": "淨現值 NPV", "q": "Slide 29: +83, −10, +150 in years 1–3 at 7.5%. NPV?", "o": ["$206.60", "$189.30", "$223.00", "$175.18"], "a": 1, "why": "77.21 − 8.65 + 120.74 = 189.30。$206.60 係漏咗 −10 嘅負號。"}, {"id": "1.8-2", "lec": "L1", "kp": "1.8", "topic": "淨現值 NPV", "q": "Pay $1,000 now; receive $400 at the end of years 1, 2 and 3. NPV at 8%?", "o": ["$200.00", "$30.84", "−$30.84", "$1,030.84"], "a": 1, "why": "−1000 + 400/1.08 + 400/1.08² + 400/1.08³ = 30.84。"}, {"id": "1.8-3", "lec": "L1", "kp": "1.8", "topic": "淨現值 NPV", "q": "A positive NPV means the project:", "o": ["Earns more than the discount rate", "Earns less than the discount rate", "Has no risk"], "a": 0, "why": "NPV > 0 = 回報高過用嚟折現嘅利率。"}, {"id": "1.9-1", "lec": "L1", "kp": "1.9", "topic": "內部回報率 IRR", "q": "The IRR is the discount rate at which:", "o": ["NPV is maximised", "NPV equals zero", "Cash flows double"], "a": 1, "why": "IRR 定義：令 NPV = 0 嘅利率。"}, {"id": "1.9-2", "lec": "L1", "kp": "1.9", "topic": "內部回報率 IRR", "q": "Both cost $1,000 today. Investment 1 pays $50 at the end of years 1–5 and $1,050 at the end of year 6 (IRR 5.0000%). Investment 2 pays $200 at the end of years 1–6 (IRR 5.4718%). Ranked by IRR, which is better?", "o": ["Investment 1", "Investment 2", "Equal, because both have NPV = 0"], "a": 1, "why": "IRR 越高，每年回報越高，所以 Investment 2 較好（slide 30–31）。陷阱：NPV = 0 只係喺<b>各自嘅 IRR<\/b> 先成立：Investment 1 喺 5% 先係 0，Investment 2 要去到 5.4718% 先係 0。用同一個利率比較，例如 5%：Investment 1 NPV = $0，Investment 2 NPV = +$15.14，所以回報唔一樣。"}, {"id": "1.9-3", "lec": "L1", "kp": "1.9", "topic": "內部回報率 IRR", "q": "Investment 1 has IRR 5%, Investment 2 has IRR 5.4718%. Discount both at the same 5%. Their NPVs are:", "o": ["Both $0", "Inv 1 = $0, Inv 2 = +$15.14", "Inv 1 = +$15.14, Inv 2 = $0"], "a": 1, "why": "NPV = 0 只會喺自己嘅 IRR 出現。5% 啱啱係 Investment 1 嘅 IRR，所以佢 NPV = 0；Investment 2 嘅 IRR 高過 5%，用 5% 折現仍然係正數 +$15.14。"}, {"id": "1.9-4", "lec": "L1", "kp": "1.9", "topic": "內部回報率 IRR", "q": "Pay $1,000 today for a 6-year bond with a $1,000 face value and a 5% annual coupon ($50 at the end of years 1–6, plus $1,000 face value at the end of year 6). Its IRR is:", "o": ["5%", "5.47%", "50%"], "a": 0, "why": "以面值 $1,000 買入、票息 5%，IRR 就等於票息率 5%（即 slide 31 嘅 Investment 1）。"}, {"id": "2.1-1", "lec": "L2", "kp": "2.1", "topic": "貨幣市場、參與者、風險", "q": "Which is NOT a typical feature of the money market?", "o": ["Maturity usually under one year", "Trading on a physical trading floor", "High denominations", "High liquidity"], "a": 1, "why": "貨幣市場冇實體交易大堂，靠電話同電子平台。"}, {"id": "2.1-2", "lec": "L2", "kp": "2.1", "topic": "貨幣市場、參與者、風險", "q": "In the money market, a broker:", "o": ["Quotes its own bid and offer and takes positions", "Matches the highest bid with the lowest offer", "Issues commercial paper"], "a": 1, "why": "Broker 只做配對；自己報價做對手嘅係 dealer。"}, {"id": "2.1-3", "lec": "L2", "kp": "2.1", "topic": "貨幣市場、參與者、風險", "q": "An instrument is thinly traded with wide bid–offer spreads. This is:", "o": ["Credit risk", "Liquidity risk", "Market risk"], "a": 1, "why": "難買賣、價差闊 = liquidity risk。"}, {"id": "2.1-4", "lec": "L2", "kp": "2.1", "topic": "貨幣市場、參與者、風險", "q": "Credit risk is generally higher for:", "o": ["Longer-term debt", "Shorter-term debt", "It does not depend on term"], "a": 0, "why": "年期越長，發行人出事嘅機會越大。"}, {"id": "2.2-1", "lec": "L2", "kp": "2.2", "topic": "孳息曲線同信貸評級", "q": "An upward-sloping yield curve suggests that short-term rates are expected to:", "o": ["Rise", "Fall", "Stay the same"], "a": 0, "why": "長息高過短息，反映預期將來短期利率上升。"}, {"id": "2.2-2", "lec": "L2", "kp": "2.2", "topic": "孳息曲線同信貸評級", "q": "A flat yield curve suggests rates are expected to:", "o": ["Rise", "Fall", "Stay the same"], "a": 2, "why": "各年期利率一樣，即預期利率唔變。"}, {"id": "2.2-3", "lec": "L2", "kp": "2.2", "topic": "孳息曲線同信貸評級", "q": "Moody's best-quality long-term rating is:", "o": ["AAA", "Aaa", "P1"], "a": 1, "why": "Moody's 用 Aaa；S&P 用 AAA；P1 係 Moody's 短期評級。"}, {"id": "2.2-4", "lec": "L2", "kp": "2.2", "topic": "孳息曲線同信貸評級", "q": "The lowest S&P investment-grade long-term rating is:", "o": ["BBB−", "BB+", "A−"], "a": 0, "why": "BBB− / Baa3 係投資級最低一級。"}, {"id": "2.3-1", "lec": "L2", "kp": "2.3", "topic": "貨幣市場工具同術語", "q": "\"Eurodollar\" means:", "o": ["US dollars deposited at banks outside the US", "Euros deposited at US banks", "A euro-denominated government bond"], "a": 0, "why": "Eurodollar = 喺美國以外銀行嘅美元存款。"}, {"id": "2.3-2", "lec": "L2", "kp": "2.3", "topic": "貨幣市場工具同術語", "q": "A discount instrument:", "o": ["Pays a fixed coupon", "Pays no coupon and is bought below par", "Is always issued by a bank"], "a": 1, "why": "冇 coupon，回報 = 面值 − 買入價。"}, {"id": "2.3-3", "lec": "L2", "kp": "2.3", "topic": "貨幣市場工具同術語", "q": "Commercial paper is issued by:", "o": ["Governments", "Corporations", "Central banks only"], "a": 1, "why": "CP 係公司發行嘅短期票據。"}, {"id": "2.3-4", "lec": "L2", "kp": "2.3", "topic": "貨幣市場工具同術語", "q": "A bearer security pays principal (and coupon) to:", "o": ["The original buyer", "Whoever holds it at maturity", "The registered owner only"], "a": 1, "why": "Bearer = 不記名，誰持有就付款畀誰。"}, {"id": "2.4-1", "lec": "L2", "kp": "2.4", "topic": "LIBOR → SOFR", "q": "How was LIBOR calculated from the panel submissions?", "o": ["Average of all submissions", "Drop the highest and lowest 25%, average the rest", "The median of the highest quarter"], "a": 1, "why": "去走最高同最低各 25%，平均中間 50%。"}, {"id": "2.4-2", "lec": "L2", "kp": "2.4", "topic": "LIBOR → SOFR", "q": "The key difference between SOFR and LIBOR:", "o": ["SOFR is unsecured", "SOFR is based on actual completed transactions", "SOFR is set by panel bank estimates"], "a": 1, "why": "SOFR 係真實 repo 交易；LIBOR 係銀行報價估計。"}, {"id": "2.4-3", "lec": "L2", "kp": "2.4", "topic": "LIBOR → SOFR", "q": "The remaining USD LIBOR settings stopped being published after:", "o": ["31 December 2021", "30 June 2023", "31 December 2019"], "a": 1, "why": "其他貨幣 2021 年底停；USD 主要年期 2023 年 6 月 30 日停。"}, {"id": "2.4-4", "lec": "L2", "kp": "2.4", "topic": "LIBOR → SOFR", "q": "SOFR is a rate for:", "o": ["Unsecured 3-month interbank loans", "Overnight loans secured by Treasuries (repo)", "Corporate bonds"], "a": 1, "why": "Secured Overnight Financing Rate = 有國庫券抵押嘅隔夜 repo。"}, {"id": "2.5-1", "lec": "L2", "kp": "2.5", "topic": "日數基準 ACT/360 vs ACT/365", "q": "Interest on USD 1,000,000 at 5% for 91 days?", "o": ["$12,465.75", "$12,638.89", "$12,500.00", "$50,000.00"], "a": 1, "why": "USD 用 360：1,000,000 × 0.05 × 91/360 = 12,638.89。"}, {"id": "2.5-2", "lec": "L2", "kp": "2.5", "topic": "日數基準 ACT/360 vs ACT/365", "q": "Which currency uses ACT/365 in both domestic and international markets?", "o": ["USD", "EUR", "HKD", "CHF"], "a": 2, "why": "HKD、GBP、SGD、MYR、TWD、THB、ZAR 都係 ACT/365。"}, {"id": "2.5-3", "lec": "L2", "kp": "2.5", "topic": "日數基準 ACT/360 vs ACT/365", "q": "JPY interbank deals in the international (Euro) market use:", "o": ["ACT/365", "ACT/360"], "a": 1, "why": "JPY 只係本地市場用 365，國際市場用 360。"}, {"id": "2.5-4", "lec": "L2", "kp": "2.5", "topic": "日數基準 ACT/360 vs ACT/365", "q": "5% on an ACT/360 basis equals what rate on an ACT/365 basis?", "o": ["4.9315%", "5.0000%", "5.0694%"], "a": 2, "why": "5% × 365/360 = 5.0694%。"}, {"id": "2.6-1", "lec": "L2", "kp": "2.6", "topic": "報價：Bid / Offer 同 Eurodeposit", "q": "A London dealer quotes 4.50 – 4.40. You want to BORROW. You pay:", "o": ["4.40%", "4.45%", "4.50%"], "a": 2, "why": "借錢俾高價（offer）。"}, {"id": "2.6-2", "lec": "L2", "kp": "2.6", "topic": "報價：Bid / Offer 同 Eurodeposit", "q": "A London dealer quotes 4.50 – 4.40. You want to DEPOSIT. You receive:", "o": ["4.40%", "4.50%"], "a": 0, "why": "存款收低價（bid）。"}, {"id": "2.6-3", "lec": "L2", "kp": "2.6", "topic": "報價：Bid / Offer 同 Eurodeposit", "q": "In London, deposit rates are quoted as:", "o": ["bid – offer", "offer – bid"], "a": 1, "why": "倫敦報 offer 先（高先），其他地方 bid 先。"}, {"id": "2.6-4", "lec": "L2", "kp": "2.6", "topic": "報價：Bid / Offer 同 Eurodeposit", "q": "LIBID is:", "o": ["The rate dealers charge for lending", "The rate dealers pay for taking deposits"], "a": 1, "why": "LIBID = bid = dealer 收存款俾嘅利率。"}, {"id": "2.7-1", "lec": "L2", "kp": "2.7", "topic": "日期慣例", "q": "A deposit starting tomorrow and maturing the next day is:", "o": ["Overnight (O/N)", "Tom-next (T/N)", "Spot-next (S/N)"], "a": 1, "why": "T/N = tomorrow → next day。"}, {"id": "2.7-2", "lec": "L2", "kp": "2.7", "topic": "日期慣例", "q": "Spot is a month-end. Under the end/end rule, forward maturity dates are:", "o": ["Exactly 30 days later", "Also month-ends", "The next business day"], "a": 1, "why": "Spot 係月底，到期日都係月底。"}, {"id": "2.7-3", "lec": "L2", "kp": "2.7", "topic": "日期慣例", "q": "A 2-month deposit should mature on 30 April, a Sunday. Under modified following it matures on:", "o": ["Monday 1 May", "Friday 28 April", "Saturday 29 April"], "a": 1, "why": "唔可以推去下個月，所以退返四月最後一個營業日 28 Apr。"}, {"id": "2.8-1", "lec": "L2", "kp": "2.8", "topic": "存款證 CD：定價同收益", "q": "$2m CD, 4% coupon, 365-day term (ACT/365). 90 days left, market rate 3.5%. Price?", "o": ["$2,062,202.91", "$2,080,000.00", "$2,060,273.97", "$2,000,000.00"], "a": 0, "why": "到期收 2,080,000；再除 (1 + 0.035 × 90/365)。"}, {"id": "2.8-2", "lec": "L2", "kp": "2.8", "topic": "存款證 CD：定價同收益", "q": "To price a CD in the secondary market, you discount the maturity proceeds at:", "o": ["The coupon rate", "The current market rate for the remaining days", "The rate on the issue date"], "a": 1, "why": "Coupon 只決定收幾多；折現用今日市場利率。"}, {"id": "2.8-3", "lec": "L2", "kp": "2.8", "topic": "存款證 CD：定價同收益", "q": "A London dealer quotes a CD at 4.13 – 3.89 (yields). If you SELL the CD to the dealer, the price gives the dealer a yield of:", "o": ["3.89%", "4.13%"], "a": 1, "why": "Dealer 買入用較高收益率 = 較低價錢，對佢有利。"}, {"id": "2.8-4", "lec": "L2", "kp": "2.8", "topic": "存款證 CD：定價同收益", "q": "Which is NOT negotiable?", "o": ["Certificate of deposit", "Time deposit", "Treasury bill"], "a": 1, "why": "Time deposit 唔可以轉讓；CD 就係可以轉讓嘅版本。"}, {"id": "2.9-1", "lec": "L2", "kp": "2.9", "topic": "T-bill：discount rate vs yield", "q": "US T-bill, 91 days, discount rate 5%, face $1,000,000. Price?", "o": ["$987,361.11", "$987,654.32", "$950,000.00", "$987,534.25"], "a": 0, "why": "1,000,000 × (1 − 0.05 × 91/360) = 987,361.11。"}, {"id": "2.9-2", "lec": "L2", "kp": "2.9", "topic": "T-bill：discount rate vs yield", "q": "A US T-bill is priced from a quoted discount rate. Its true yield is:", "o": ["Lower than the discount rate", "Equal to the discount rate", "Higher than the discount rate"], "a": 2, "why": "Discount 用面值計；yield 用較細嘅價錢計，所以較高。"}, {"id": "2.9-3", "lec": "L2", "kp": "2.9", "topic": "T-bill：discount rate vs yield", "q": "A 91-day instrument yields 5% (ACT/360). Equivalent discount rate?", "o": ["5.0640%", "4.9376%", "5.0000%"], "a": 1, "why": "D = 0.05 / (1 + 0.05 × 91/360) = 4.9376%。"}, {"id": "2.9-4", "lec": "L2", "kp": "2.9", "topic": "T-bill：discount rate vs yield", "q": "Compared with bank CDs of the same term, T-bill yields are usually:", "o": ["Higher", "Lower"], "a": 1, "why": "政府冇違約風險、T-bill 流動性高，所以收益率較低。"}, {"id": "2.10-1", "lec": "L2", "kp": "2.10", "topic": "CP、Banker's acceptance、Repo", "q": "US commercial paper has a maximum term of about:", "o": ["30 days", "270 days", "2 years"], "a": 1, "why": "US CP 1–270 日；ECP 2–365 日。"}, {"id": "2.10-2", "lec": "L2", "kp": "2.10", "topic": "CP、Banker's acceptance、Repo", "q": "In a banker's acceptance, who \"accepts\" the draft?", "o": ["The exporter", "The importer's bank", "The investor"], "a": 1, "why": "進口商嘅銀行（Bank I）承兌，承諾到期付款。"}, {"id": "2.10-3", "lec": "L2", "kp": "2.10", "topic": "CP、Banker's acceptance、Repo", "q": "The interest on a repo equals:", "o": ["The coupon on the security", "The difference between the purchase and repurchase prices", "LIBOR plus a margin"], "a": 1, "why": "Repo：先賣後買返，價差就係利息。"}, {"id": "2.10-4", "lec": "L2", "kp": "2.10", "topic": "CP、Banker's acceptance、Repo", "q": "In the US and UK, banker's acceptances and CP are quoted on a:", "o": ["Yield basis", "Discount rate basis"], "a": 1, "why": "美英兩地 BA、US CP 用 discount rate 報價；其他地方多數用 yield。"}, {"id": "3.1-1", "lec": "L3", "kp": "3.1", "topic": "遠期利率 Forward-forward", "q": "3-month (91 days) 5%, 6-month (182 days) 5.5%, ACT/360. 3v6 forward-forward rate?", "o": ["5.2500%", "5.9251%", "6.0000%", "5.5000%"], "a": 1, "why": "[(1 + 0.055 × 182/360)/(1 + 0.05 × 91/360) − 1] × 360/91 = 5.9251%。"}, {"id": "3.1-2", "lec": "L3", "kp": "3.1", "topic": "遠期利率 Forward-forward", "q": "In a forward-forward, which are fixed in advance?", "o": ["Only the amount", "Term, amount and interest rate", "Only the interest rate"], "a": 1, "why": "Slide 2：term、amount、rate 全部今日定好。"}, {"id": "3.1-3", "lec": "L3", "kp": "3.1", "topic": "遠期利率 Forward-forward", "q": "In the forward-forward formula, the annualising factor uses:", "o": ["year / dL", "year / (dL − dS)", "year / dS"], "a": 1, "why": "Forward 只係覆蓋長短期之間嗰段日數。"}, {"id": "3.2-1", "lec": "L3", "kp": "3.2", "topic": "FRA 係乜同時間線", "q": "In an FRA, the principal amount is:", "o": ["Exchanged at the start", "Exchanged at maturity", "Never exchanged (notional only)"], "a": 2, "why": "FRA 只係俾利率差額，本金係名義嘅。"}, {"id": "3.2-2", "lec": "L3", "kp": "3.2", "topic": "FRA 係乜同時間線", "q": "\"3 v 6\" FRA means a period that:", "o": ["Lasts 3 months starting in 6 months", "Starts in 3 months and ends in 6 months", "Lasts 9 months"], "a": 1, "why": "3 個月後開始，6 個月完，為期 3 個月。"}, {"id": "3.2-3", "lec": "L3", "kp": "3.2", "topic": "FRA 係乜同時間線", "q": "The FRA settlement is paid:", "o": ["At the end of the FRA period", "At the start of the FRA period, discounted", "Daily"], "a": 1, "why": "喺期頭俾，所以要折現。"}, {"id": "3.2-4", "lec": "L3", "kp": "3.2", "topic": "FRA 係乜同時間線", "q": "A company wants to fix a 3-month loan starting in 2 months. It should:", "o": ["Buy a 2 v 5 FRA", "Sell a 2 v 5 FRA", "Buy a 3 v 5 FRA"], "a": 0, "why": "2 個月後開始、5 個月完；借錢一方要買 FRA。"}, {"id": "x1", "lec": "L1", "kp": "1.1", "topic": "單利", "q": "Interest on HK$250,000 at 3.5% p.a. simple interest for 73 days (ACT/365)?", "o": ["HK$1,750.00", "HK$1,774.31", "HK$8,750.00", "HK$1,725.69"], "a": 0, "why": "港幣用 365：250,000 × 0.035 × 73/365 = 1,750。HK$1,774.31 係錯用 360 日。"}, {"id": "x2", "lec": "L1", "kp": "1.2", "topic": "複利", "q": "$5,000 invested at 6% compounded annually for 4 years. FV?", "o": ["$6,200.00", "$6,312.38", "$6,691.13", "$6,000.00"], "a": 1, "why": "5,000 × 1.06⁴ = 5,000 × 1.262477 = 6,312.38。$6,200 係單利 (5,000 + 4 × 300)。"}, {"id": "x3", "lec": "L1", "kp": "1.3", "topic": "名義 vs 實際利率", "q": "6% nominal, compounded semi-annually. Effective annual rate?", "o": ["6.00%", "6.09%", "6.17%", "3.00%"], "a": 1, "why": "(1 + 0.06/2)² − 1 = 1.03² − 1 = 6.09%。"}, {"id": "x4", "lec": "L1", "kp": "1.3", "topic": "名義 vs 實際利率", "q": "12% nominal, compounded monthly. Effective annual rate?", "o": ["12.0000%", "12.3600%", "12.6825%", "12.5509%"], "a": 2, "why": "(1 + 0.12/12)¹² − 1 = 1.01¹² − 1 = 12.6825%。12.36% 係每半年複利。"}, {"id": "x5", "lec": "L1", "kp": "1.3", "topic": "名義 vs 實際利率", "q": "What nominal rate, compounded monthly, gives the same return as 6% compounded annually?", "o": ["5.8411%", "6.0000%", "6.1678%", "0.5000%"], "a": 0, "why": "12 × (1.06^(1/12) − 1) = 12 × 0.004868 = 5.8411%。複利越密，nominal 要越低先得同一個結果。"}, {"id": "x6", "lec": "L1", "kp": "1.4", "topic": "Compound yield", "q": "A 90-day investment yields 6% (simple, ACT/365). Compound yield (annually compounded equivalent)?", "o": ["6.0000%", "6.1370%", "1.4471%", "6.0833%"], "a": 1, "why": "(1 + 0.06 × 90/365)^(365/90) − 1 = 1.014795^4.0556 − 1 = 6.1370%。"}, {"id": "x7", "lec": "L1", "kp": "1.5", "topic": "連續複利", "q": "Continuously compounded equivalent of 8% compounded annually?", "o": ["8.0000%", "8.3287%", "7.6961%", "7.8461%"], "a": 2, "why": "r = ln(1.08) = 7.6961%。連續複利報價一定低過年複利。"}, {"id": "x8", "lec": "L1", "kp": "1.5", "topic": "連續複利", "q": "5% continuously compounded equals what annually compounded rate?", "o": ["5.0000%", "5.1271%", "4.8790%", "5.2500%"], "a": 1, "why": "i = e^0.05 − 1 = 5.1271%。4.8790% 係 ln(1.05)，方向調轉咗。"}, {"id": "x9", "lec": "L1", "kp": "1.5", "topic": "連續複利", "q": "$100 invested at 5% continuously compounded for 1 year. FV?", "o": ["$105.00", "$105.13", "$104.88", "$105.06"], "a": 1, "why": "FV = 100 × e^0.05 = 105.13。"}, {"id": "x10", "lec": "L1", "kp": "1.6", "topic": "由價錢計收益率", "q": "Pay $9,850 today, receive $10,000 in 120 days. Simple yield (ACT/365)?", "o": ["4.5625%", "1.5228%", "4.6320%", "4.5685%"], "a": 2, "why": "(10,000/9,850 − 1) × 365/120 = 0.015228 × 3.0417 = 4.6320%。1.5228% 係未年化；4.5625% 錯用面值做分母。"}, {"id": "x11", "lec": "L1", "kp": "1.7", "topic": "折現因子", "q": "PV of $10,000 due in 2 years at 5% compounded annually?", "o": ["$9,000.00", "$9,070.29", "$9,090.91", "$9,523.81"], "a": 1, "why": "10,000 / 1.05² = 10,000 / 1.1025 = 9,070.29。$9,523.81 只係折現一年。"}, {"id": "x12", "lec": "L1", "kp": "1.7", "topic": "折現因子", "q": "2-year discount factor at 6% continuously compounded?", "o": ["0.8900", "0.8869", "0.8870", "0.9418"], "a": 1, "why": "DF = e^(−0.06 × 2) = e^(−0.12) = 0.8869。0.8900 係 1/1.06²。"}, {"id": "x13", "lec": "L1", "kp": "1.8", "topic": "NPV", "q": "Pay $500 today; receive $200 at the end of each of years 1, 2 and 3. NPV at 10%?", "o": ["+$100.00", "−$2.63", "+$2.63", "+$45.45"], "a": 1, "why": "−500 + 200/1.1 + 200/1.1² + 200/1.1³ = −500 + 181.82 + 165.29 + 150.26 = −2.63。負數 = 回報低過 10%，唔抵做。"}, {"id": "x14", "lec": "L1", "kp": "1.9", "topic": "IRR", "q": "Pay $950 today for a 1-year bond paying $1,050 (5% coupon + $1,000 face) at maturity. IRR?", "o": ["5.00%", "10.00%", "10.53%", "5.26%"], "a": 2, "why": "只有一筆現金流：950 × (1 + IRR) = 1,050 → IRR = 1,050/950 − 1 = 10.53%。買平過面值，所以 IRR 高過票息 5%。"}, {"id": "x15", "lec": "L2", "kp": "2.5", "topic": "日數基準", "q": "Interest on GBP 2,000,000 at 4.5% for 90 days?", "o": ["£22,500.00", "£22,191.78", "£90,000.00", "£22,808.22"], "a": 1, "why": "英鎊用 ACT/365：2,000,000 × 0.045 × 90/365 = 22,191.78。£22,500 係錯用 360。"}, {"id": "x16", "lec": "L2", "kp": "2.5", "topic": "日數基準", "q": "4% on an ACT/365 basis equals what rate on an ACT/360 basis?", "o": ["4.0556%", "4.0000%", "3.9452%", "3.9726%"], "a": 2, "why": "同一筆利息：r₃₆₀ × days/360 = 4% × days/365 → r₃₆₀ = 4% × 360/365 = 3.9452%。分母細咗，報價要低啲。"}, {"id": "x17", "lec": "L2", "kp": "2.4", "topic": "LIBOR", "q": "Eight panel banks submit 3.1, 3.2, 3.3, 3.3, 3.4, 3.5, 3.6 and 4.0%. LIBOR is:", "o": ["3.4250%", "3.3500%", "3.3750%", "3.4000%"], "a": 2, "why": "去走最低 25%（3.1、3.2）同最高 25%（3.6、4.0），平均中間：(3.3 + 3.3 + 3.4 + 3.5)/4 = 3.375%。3.425% 係全部平均。"}, {"id": "x18", "lec": "L2", "kp": "2.6", "topic": "Bid / Offer", "q": "A Singapore dealer quotes 3.60 – 3.75. You want to BORROW. You pay:", "o": ["3.60%", "3.675%", "3.75%"], "a": 2, "why": "倫敦以外報 bid – offer（低先）。借錢一定俾高嗰個 = 3.75%。"}, {"id": "x19", "lec": "L2", "kp": "2.8", "topic": "CD 定價", "q": "$1,000,000 CD, 6% coupon, 180-day term (ACT/360). With 60 days left, the market rate is 5%. Price?", "o": ["$1,030,000.00", "$1,021,487.60", "$1,019,801.98", "$1,001,652.89"], "a": 1, "why": "第一步：到期收 1,000,000 × (1 + 0.06 × 180/360) = 1,030,000。第二步：用 5% 同 60 日折現：1,030,000 / (1 + 0.05 × 60/360) = 1,021,487.60。$1,019,801.98 係錯用票息 6% 折現。"}, {"id": "x20", "lec": "L2", "kp": "2.8", "topic": "CD 定價", "q": "You buy a CD for $990,000. It pays $1,000,000 in 45 days (ACT/365). Your yield?", "o": ["8.0808%", "8.1111%", "8.1930%", "1.0101%"], "a": 2, "why": "(1,000,000/990,000 − 1) × 365/45 = 0.010101 × 8.1111 = 8.1930%。8.1111% 錯用面值做分母；8.0808% 錯用 360。"}, {"id": "x21", "lec": "L2", "kp": "2.8", "topic": "CD 報價", "q": "A dealer quotes a CD at 4.13 – 3.89 (yields). You BUY the CD from the dealer. The price gives you a yield of:", "o": ["4.13%", "3.89%", "4.01%"], "a": 1, "why": "Dealer 賣俾你用較低 yield = 較高價，對 dealer 有利。你買入嘅回報係 3.89%。"}, {"id": "x22", "lec": "L2", "kp": "2.9", "topic": "T-bill", "q": "US T-bill, face $1,000,000, 91 days, discount rate 4%. Price?", "o": ["$990,027.40", "$989,888.89", "$960,000.00", "$989,990.10"], "a": 1, "why": "1,000,000 × (1 − 0.04 × 91/360) = 1,000,000 × 0.989889 = 989,888.89。$989,990.10 係錯當 4% 係 yield；$990,027.40 錯用 365。"}, {"id": "x23", "lec": "L2", "kp": "2.9", "topic": "T-bill", "q": "A 91-day US T-bill has a discount rate of 4%. True yield?", "o": ["4.0000%", "3.9596%", "4.0409%", "4.1011%"], "a": 2, "why": "y = D / (1 − D × days/360) = 0.04 / (1 − 0.04 × 91/360) = 0.04 / 0.989889 = 4.0409%。Yield 一定高過 discount rate。"}, {"id": "x24", "lec": "L2", "kp": "2.9", "topic": "T-bill", "q": "A 182-day instrument yields 6% (ACT/360). Equivalent discount rate?", "o": ["6.1877%", "5.8234%", "5.8180%", "6.0000%"], "a": 1, "why": "D = y / (1 + y × days/360) = 0.06 / (1 + 0.06 × 182/360) = 0.06 / 1.030333 = 5.8234%。Discount rate 一定低過 yield。"}, {"id": "x25", "lec": "L3", "kp": "3.1", "topic": "Forward-forward", "q": "3-month (90 days) rate 4%, 6-month (180 days) rate 4.5%, ACT/360. 3v6 forward-forward rate?", "o": ["5.0000%", "4.9505%", "4.2500%", "2.4752%"], "a": 1, "why": "[(1 + 0.045 × 180/360)/(1 + 0.04 × 90/360) − 1] × 360/90 = (1.0225/1.01 − 1) × 4 = 4.9505%。2.4752% 錯用 360/180 年化。"}, {"id": "x26", "lec": "L3", "kp": "3.1", "topic": "Forward-forward", "q": "1-year rate 5%, 2-year rate 6% (both annually compounded). Implied 1-year rate starting in 1 year?", "o": ["7.0095%", "7.0000%", "6.5000%", "5.5000%"], "a": 0, "why": "1.06² = 1.05 × (1 + f) → f = 1.1236/1.05 − 1 = 7.0095%。孳息曲線向上 → 預期利率上升。"}, {"id": "x27", "lec": "L3", "kp": "3.2", "topic": "FRA", "q": "A company will borrow for 6 months starting in 3 months. Which FRA should it buy?", "o": ["3 v 6", "6 v 9", "3 v 9", "6 v 3"], "a": 2, "why": "3 個月後開始、9 個月完（3 + 6），所以係 3 v 9。借款人怕加息，買 FRA。"}]</script>
+<script>
+(function(){
+const ALL=JSON.parse(document.getElementById("data").textContent);
+const $=s=>document.querySelector(s);
+const KEY="c7802-mc-v1";
+const store={get(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}},set(v){try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}}};
+let S=Object.assign({res:{},shuffle:true,shuffleOpts:false},store.get());
+const save=()=>store.set({res:S.res,shuffle:S.shuffle,shuffleOpts:S.shuffleOpts});
+/* a question counts as a calculation if any option contains a digit-heavy value */
+ALL.forEach(q=>{q.calc=q.o.some(o=>/\d[\d,.]*\s*%|\$\s?[\d,]+|[£]\s?[\d,]+|HK\$|^\s*[−-]?\d[\d,.]*\s*$/.test(o))||/^x/.test(q.id)});
+
+const SETS=[
+ {k:"all",t:"全部題目",d:"L1 + L2 + L3 3.1–3.2",f:()=>true},
+ {k:"L1",t:"L1 基本金融算術",d:"單利、複利、實際利率、PV、NPV、IRR",f:q=>q.lec==="L1"},
+ {k:"L2",t:"L2 貨幣市場",d:"日數、報價、CD、T-bill、CP、BA、Repo",f:q=>q.lec==="L2"},
+ {k:"L3",t:"L3 Forward-forward 同 FRA",d:"3.1 遠期利率、3.2 FRA 基本",f:q=>q.lec==="L3"},
+ {k:"calc",t:"只做計數題",d:"全部要用計數機嘅題目",f:q=>q.calc},
+ {k:"new",t:"未做過",d:"由未答過嘅題目",f:q=>!S.res[q.id]},
+ {k:"wrong",t:"錯題重溫",d:"最近一次答錯嘅題目",f:q=>S.res[q.id]&&!S.res[q.id].ok}
+];
+
+let run=null; /* {list:[{q,order}], i, answers:{}} */
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function pill(){const ok=Object.values(S.res).filter(r=>r.ok).length;$("#pill").textContent=`${ok}/${ALL.length} 啱`}
+
+function home(){
+  run=null;$("#act").hidden=true;$("#homeBtn").hidden=true;closeCalc();pill();
+  const done=Object.keys(S.res).length,ok=Object.values(S.res).filter(r=>r.ok).length,wrong=done-ok;
+  $("#view").innerHTML=`<h1>出去都溫得：${ALL.length} 條 MC</h1>
+  <p class="lede">英文題目，廣東話解釋。撳 🧮 開計數機，題目唔會被遮住。</p>
+  <div class="stats"><div class="stat"><b>${done}</b><span>做過</span></div><div class="stat"><b style="color:var(--good)">${ok}</b><span>啱</span></div><div class="stat"><b style="color:var(--bad)">${wrong}</b><span>錯（可重溫）</span></div></div>
+  <div class="lbl">揀一組</div><div class="sets">${SETS.map(s=>{const qs=ALL.filter(s.f),c=qs.filter(q=>S.res[q.id]&&S.res[q.id].ok).length;return `<button class="set" type="button" data-k="${s.k}" ${qs.length?"":"disabled"}><div class="t"><b>${s.t}</b><span>${s.d}</span><div class="bar2"><i style="width:${qs.length?c/qs.length*100:0}%"></i></div></div><span class="n">${qs.length} 題</span></button>`}).join("")}</div>
+  <div class="lbl">設定</div><div class="opts-row"><button class="tog" id="tShuf" type="button" aria-pressed="${S.shuffle}">打亂題目次序</button><button class="tog" id="tShufO" type="button" aria-pressed="${S.shuffleOpts}">打亂選項次序</button></div>
+  <button class="reset" id="reset" type="button">清除所有紀錄</button>`;
+  $("#view").querySelectorAll(".set").forEach(b=>b.addEventListener("click",()=>start(b.dataset.k)));
+  $("#tShuf").addEventListener("click",e=>{S.shuffle=!S.shuffle;save();e.currentTarget.setAttribute("aria-pressed",S.shuffle)});
+  $("#tShufO").addEventListener("click",e=>{S.shuffleOpts=!S.shuffleOpts;save();e.currentTarget.setAttribute("aria-pressed",S.shuffleOpts)});
+  let armed=false;$("#reset").addEventListener("click",e=>{if(!armed){armed=true;e.currentTarget.textContent="再撳一次確認清除";return}S.res={};save();home()});
+  window.scrollTo(0,0);
+}
+
+function start(k){
+  const s=SETS.find(x=>x.k===k);let qs=ALL.filter(s.f);if(S.shuffle)qs=shuffle(qs);
+  run={k,title:s.t,list:qs.map(q=>({q,order:S.shuffleOpts?shuffle(q.o.map((_,i)=>i)):q.o.map((_,i)=>i)})),i:0,answers:{}};
+  $("#act").hidden=false;$("#homeBtn").hidden=false;show();
+}
+
+function show(){
+  const it=run.list[run.i],q=it.q,ans=run.answers[run.i];
+  const L="ABCDE";
+  $("#view").innerHTML=`<div class="prog"><i style="width:${(run.i+1)/run.list.length*100}%"></i></div>
+   <div class="qhead"><span class="chip k">${q.kp}</span><span class="chip">${q.topic}</span><span class="chip">${run.i+1} / ${run.list.length}</span>${q.calc?'<span class="chip">計數</span>':""}</div>
+   <p class="q">${q.q}</p>
+   <div class="opts">${it.order.map((oi,j)=>{let c="";if(ans!=null){if(oi===q.a)c="ok";else if(oi===ans)c="no"}return `<button class="opt ${c}" type="button" data-oi="${oi}" ${ans!=null?"disabled":""}><span class="l">${L[j]}</span><span class="v">${q.o[oi]}</span></button>`}).join("")}</div>
+   ${ans!=null?`<div class="why ${ans===q.a?"good":"bad"}"><div class="verdict">${ans===q.a?"✓ 啱！":"✗ 唔啱。答案係 "+L[it.order.indexOf(q.a)]}</div>${q.why}</div>`:""}`;
+  $("#view").querySelectorAll(".opt").forEach(b=>b.addEventListener("click",()=>pick(+b.dataset.oi)));
+  $("#prevB").disabled=run.i===0;
+  $("#nextB").textContent=run.i===run.list.length-1?"完成 ✓":"下一題 ▶";
+  pill();
+}
+
+function pick(oi){
+  if(run.answers[run.i]!=null)return;
+  const q=run.list[run.i].q,ok=oi===q.a;run.answers[run.i]=oi;
+  const prev=S.res[q.id]||{n:0};S.res[q.id]={ok,n:prev.n+1};save();
+  show();
+  const w=document.querySelector(".why");if(w)w.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
+}
+
+function finish(){
+  const n=run.list.length,ok=run.list.filter((it,i)=>run.answers[i]===it.q.a).length,skipped=run.list.filter((it,i)=>run.answers[i]==null).length;
+  const wrong=run.list.filter((it,i)=>run.answers[i]!=null&&run.answers[i]!==it.q.a);
+  $("#act").hidden=true;closeCalc();
+  $("#view").innerHTML=`<div class="lbl">${run.title}</div><div class="score">${ok} / ${n}</div>
+   <p class="lede">${skipped?`有 ${skipped} 題未答。`:""}${wrong.length?`錯咗 ${wrong.length} 題，已經加入「錯題重溫」。`:"全對！"}</p>
+   ${wrong.length?`<div class="wrongs">${wrong.map(it=>`<div><span>${it.q.kp}</span>${it.q.q}</div>`).join("")}</div>`:""}
+   <div class="opts-row" style="margin-top:16px">${wrong.length?'<button class="btn pri" id="redo" type="button">即刻重做錯題</button>':""}<button class="btn" id="back" type="button">返去選題</button></div>`;
+  if(wrong.length)$("#redo").addEventListener("click",()=>start("wrong"));
+  $("#back").addEventListener("click",home);pill();window.scrollTo(0,0);
+}
+
+$("#nextB").addEventListener("click",()=>{if(run.i<run.list.length-1){run.i++;show();window.scrollTo(0,0)}else finish()});
+$("#prevB").addEventListener("click",()=>{if(run.i>0){run.i--;show();window.scrollTo(0,0)}});
+$("#homeBtn").addEventListener("click",home);
+
+/* ---------- calculator ---------- */
+let expr="",ans=0,tape=[];
+const KEYS=[
+ ["(","op","("],[")","op",")"],["xʸ","op fn","^"],["√","op fn","sqrt("],["ln","op fn","ln("],["eˣ","op fn","exp("],
+ ["7","","7"],["8","","8"],["9","","9"],["÷","op","÷"],["⌫","op","DEL"],["AC","op","AC"],
+ ["4","","4"],["5","","5"],["6","","6"],["×","op","×"],["÷360","op fn","÷360"],["÷365","op fn","÷365"],
+ ["1","","1"],["2","","2"],["3","","3"],["−","op","−"],["%","op fn","%"],["1/x","op fn","1/x"],
+ ["0","","0"],[".","","."],["ANS","op fn","ANS"],["+","op","+"],["=","eq w2","="]
+];
+$("#keys").innerHTML=KEYS.map(k=>`<button type="button" class="${k[1]}" data-v="${k[2]}">${k[0]}</button>`).join("");
+$("#keys").addEventListener("click",e=>{const b=e.target.closest("button");if(b)press(b.dataset.v)});
+
+function press(v){
+  if(v==="AC"){expr="";render();return}
+  if(v==="DEL"){expr=expr.replace(/(sqrt\(|ln\(|exp\(|ANS|.)$/,"");render(true);return}
+  if(v==="="){calc();return}
+  if(v==="÷360"||v==="÷365"){expr=(expr||"ANS")+v.replace("÷","÷");render(true);return}
+  if(v==="1/x"){expr="1÷("+(expr||"ANS")+")";render(true);return}
+  if(/^[+−×÷^]$/.test(v)&&expr==="")expr="ANS";
+  expr+=v;render(true);
+}
+function fmt(x){if(!isFinite(x))return "錯誤";const a=Math.abs(x);if(a!==0&&(a<1e-6||a>=1e15))return x.toExponential(8);return x.toLocaleString("en-US",{maximumFractionDigits:8})}
+function render(live){
+  $("#cEx").textContent=expr;
+  if(!live){return}
+  try{const r=evaluate(expr);$("#cRs").className="rs";$("#cRs").textContent=expr?fmt(r):"0"}catch(e){$("#cRs").className="rs";$("#cRs").textContent=$("#cRs").textContent}
+}
+function calc(){
+  if(!expr)return;
+  try{const r=evaluate(expr);if(!isFinite(r))throw new Error("計唔到（例如除咗 0）");ans=r;tape.unshift({e:expr,r});tape=tape.slice(0,8);$("#cEx").textContent=expr+" =";$("#cRs").className="rs";$("#cRs").textContent=fmt(r);expr="";drawTape()}
+  catch(e){$("#cRs").className="rs err";$("#cRs").textContent=e.message||"算式有錯"}
+}
+function drawTape(){$("#tape").innerHTML=tape.map((t,i)=>`<button type="button" data-i="${i}" title="${t.e.replace(/"/g,"&quot;")}">${fmt(t.r)}</button>`).join("");
+  $("#tape").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const t=tape[+b.dataset.i];expr+="("+t.r+")";render(true)}))}
+
+/* recursive-descent parser: + − × ÷ ^ %, unary minus, functions, ANS, implicit closing brackets */
+function evaluate(src){
+  let s=src.replace(/×/g,"*").replace(/÷/g,"/").replace(/−/g,"-");
+  const open=(s.match(/\(/g)||[]).length-(s.match(/\)/g)||[]).length;if(open>0)s+=")".repeat(open);
+  let i=0;const peek=()=>s[i],eat=c=>{if(s[i]===c){i++;return true}return false};
+  function num(){const m=/^(\d+\.?\d*|\.\d+)(e[+-]?\d+)?/i.exec(s.slice(i));if(!m)throw new Error("算式有錯");i+=m[0].length;return parseFloat(m[0])}
+  function prim(){
+    if(eat("(")){const v=add();if(!eat(")"))throw new Error("括號唔夾");return v}
+    for(const [n,f] of [["sqrt(",Math.sqrt],["ln(",Math.log],["exp(",Math.exp]]){if(s.startsWith(n,i)){i+=n.length;const v=add();eat(")");return f(v)}}
+    if(s.startsWith("ANS",i)){i+=3;return ans}
+    return num();
+  }
+  function post(){let v=prim();while(peek()==="%"){i++;v/=100}
+    /* implicit multiplication: 2(3), 2ln(5), 3ANS */
+    while(peek()==="("||["sqrt(","ln(","exp(","ANS"].some(n=>s.startsWith(n,i))){v*=prim()}
+    return v}
+  function unary(){if(eat("-"))return -unary();if(eat("+"))return unary();return post()}
+  function pow(){const b=unary();if(eat("^"))return Math.pow(b,pow());return b}
+  function mul(){let v=pow();for(;;){if(eat("*"))v*=pow();else if(eat("/"))v/=pow();else return v}}
+  function add(){let v=mul();for(;;){if(eat("+"))v+=mul();else if(eat("-"))v-=mul();else return v}}
+  if(!s)return 0;const v=add();if(i<s.length)throw new Error("算式有錯");return v;
+}
+function openCalc(){const act=$("#act"),sh=$("#sheet");sh.style.bottom=act.hidden?"0px":act.offsetHeight+"px";sh.style.paddingBottom=act.hidden?"":"0px";sh.classList.add("open");
+  /* keep the question visible above the sheet */
+  document.querySelector("main .wrap").style.paddingBottom=($("#sheet").offsetHeight+(act.hidden?0:act.offsetHeight)+20)+"px"}
+function closeCalc(){$("#sheet").classList.remove("open");const w=document.querySelector("main .wrap");if(w)w.style.paddingBottom=""}
+$("#calcB").addEventListener("click",()=>$("#sheet").classList.contains("open")?closeCalc():openCalc());
+$("#closeC").addEventListener("click",closeCalc);
+$("#useB").addEventListener("click",e=>{const t=$("#cRs").textContent;const b=e.currentTarget;
+  const done=()=>{b.textContent="已複製";setTimeout(()=>b.textContent="複製答案",1200)};
+  try{navigator.clipboard.writeText(t).then(done,()=>{})}catch(err){}});
+document.addEventListener("keydown",e=>{
+  if(!$("#sheet").classList.contains("open"))return;
+  const m={"*":"×","/":"÷","-":"−","Enter":"=","=":"=","Backspace":"DEL","Escape":"AC"};
+  if(/^[0-9.+()^%]$/.test(e.key)){press(e.key);e.preventDefault()}
+  else if(m[e.key]){press(m[e.key]);e.preventDefault()}
+});
+
+home();
+})();
+</script>
