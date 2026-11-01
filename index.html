@@ -96,6 +96,10 @@ h1{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.15;ma
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;font-weight:700;font-size:15px;white-space:nowrap}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
 .btn.calc{display:flex;align-items:center;gap:6px}
+.btn[disabled]{opacity:.4;cursor:default}
+.set.resume{border-color:var(--accent);background:var(--accent-soft)}
+.set.resume .t b{color:var(--accent)}
+@media (max-width:380px){.act .btn{padding:12px 10px}}
 
 /* calculator sheet */
 .sheet{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -8px 30px rgba(0,0,0,.18);transform:translateY(105%);transition:transform .22s ease;padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -138,6 +142,7 @@ h1{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.15;ma
 <main><div class="wrap" id="view"></div></main>
 
 <div class="act" id="act" hidden><div class="wrap">
+  <button class="btn" id="homeB2" type="button" aria-label="返去選題">☰</button>
   <button class="btn" id="prevB" type="button" aria-label="上一題">◀</button>
   <button class="btn calc" id="calcB" type="button">🧮 計數機</button>
   <button class="btn pri" id="nextB" type="button">下一題 ▶</button>
@@ -175,31 +180,51 @@ const SETS=[
 ];
 
 let run=null; /* {list:[{q,order}], i, answers:{}} */
+let view="home";
 
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function pill(){const ok=Object.values(S.res).filter(r=>r.ok).length;$("#pill").textContent=`${ok}/${ALL.length} 啱`}
 
-function home(){
-  run=null;$("#act").hidden=true;$("#homeBtn").hidden=true;closeCalc();pill();
-  const done=Object.keys(S.res).length,ok=Object.values(S.res).filter(r=>r.ok).length,wrong=done-ok;
+function home(fromPop){
+  if(!fromPop&&history.state&&history.state.v!=="home"){history.back();return}
+  run=null;view="home";$("#act").hidden=true;$("#homeBtn").hidden=true;closeCalc();pill();
+  const done=Object.keys(S.res).length,ok=Object.values(S.res).filter(r=>r.ok).length,wrong=done-ok,saved=loadRun();
   $("#view").innerHTML=`<h1>出去都溫得：${ALL.length} 條 MC</h1>
   <p class="lede">英文題目，廣東話解釋。撳 🧮 開計數機，題目唔會被遮住。</p>
   <div class="stats"><div class="stat"><b>${done}</b><span>做過</span></div><div class="stat"><b style="color:var(--good)">${ok}</b><span>啱</span></div><div class="stat"><b style="color:var(--bad)">${wrong}</b><span>錯（可重溫）</span></div></div>
+  ${saved?`<div class="lbl">未完成</div><button class="set resume" type="button" id="resume"><div class="t"><b>繼續：${saved.title}</b><span>做到第 ${saved.i+1} 題，答咗 ${Object.keys(saved.answers).length} 題</span></div><span class="n">${saved.ids.length} 題</span></button>`:""}
   <div class="lbl">揀一組</div><div class="sets">${SETS.map(s=>{const qs=ALL.filter(s.f),c=qs.filter(q=>S.res[q.id]&&S.res[q.id].ok).length;return `<button class="set" type="button" data-k="${s.k}" ${qs.length?"":"disabled"}><div class="t"><b>${s.t}</b><span>${s.d}</span><div class="bar2"><i style="width:${qs.length?c/qs.length*100:0}%"></i></div></div><span class="n">${qs.length} 題</span></button>`}).join("")}</div>
   <div class="lbl">設定</div><div class="opts-row"><button class="tog" id="tShuf" type="button" aria-pressed="${S.shuffle}">打亂題目次序</button><button class="tog" id="tShufO" type="button" aria-pressed="${S.shuffleOpts}">打亂選項次序</button></div>
   <button class="reset" id="reset" type="button">清除所有紀錄</button>`;
-  $("#view").querySelectorAll(".set").forEach(b=>b.addEventListener("click",()=>start(b.dataset.k)));
+  $("#view").querySelectorAll(".set[data-k]").forEach(b=>b.addEventListener("click",()=>start(b.dataset.k)));
+  if(saved)$("#resume").addEventListener("click",resume);
   $("#tShuf").addEventListener("click",e=>{S.shuffle=!S.shuffle;save();e.currentTarget.setAttribute("aria-pressed",S.shuffle)});
   $("#tShufO").addEventListener("click",e=>{S.shuffleOpts=!S.shuffleOpts;save();e.currentTarget.setAttribute("aria-pressed",S.shuffleOpts)});
-  let armed=false;$("#reset").addEventListener("click",e=>{if(!armed){armed=true;e.currentTarget.textContent="再撳一次確認清除";return}S.res={};save();home()});
+  let armed=false;$("#reset").addEventListener("click",e=>{if(!armed){armed=true;e.currentTarget.textContent="再撳一次確認清除";return}S.res={};save();clearRun();home(true)});
   window.scrollTo(0,0);
 }
 
 function start(k){
   const s=SETS.find(x=>x.k===k);let qs=ALL.filter(s.f);if(S.shuffle)qs=shuffle(qs);
   run={k,title:s.t,list:qs.map(q=>({q,order:S.shuffleOpts?shuffle(q.o.map((_,i)=>i)):q.o.map((_,i)=>i)})),i:0,answers:{}};
-  $("#act").hidden=false;$("#homeBtn").hidden=false;show();
+  enterQuiz();
 }
+function enterQuiz(){
+  view="quiz";$("#act").hidden=false;$("#homeBtn").hidden=false;
+  try{if(!history.state||history.state.v!=="quiz")history.pushState({v:"quiz"},"")}catch(e){}
+  saveRun();show();window.scrollTo(0,0);
+}
+/* the run in progress is saved so a reload (common on phones when switching apps) does not lose your place */
+const RUNKEY="c7802-mc-run";
+function saveRun(){if(!run)return;try{localStorage.setItem(RUNKEY,JSON.stringify({k:run.k,title:run.title,ids:run.list.map(it=>it.q.id),orders:run.list.map(it=>it.order),i:run.i,answers:run.answers}))}catch(e){}}
+function loadRun(){try{const r=JSON.parse(localStorage.getItem(RUNKEY));if(r&&r.ids&&r.ids.length)return r}catch(e){}return null}
+function clearRun(){try{localStorage.removeItem(RUNKEY)}catch(e){}}
+function resume(){const r=loadRun();if(!r)return;const byId=Object.fromEntries(ALL.map(q=>[q.id,q]));
+  const list=r.ids.map((id,j)=>byId[id]?{q:byId[id],order:r.orders[j]&&r.orders[j].length===byId[id].o.length?r.orders[j]:byId[id].o.map((_,x)=>x)}:null);
+  const keep=list.map((it,j)=>it?j:-1).filter(j=>j>=0);
+  run={k:r.k,title:r.title,list:keep.map(j=>list[j]),i:0,answers:{}};
+  keep.forEach((j,n)=>{if(r.answers[j]!=null)run.answers[n]=r.answers[j];if(j===r.i)run.i=n});
+  enterQuiz()}
 
 function show(){
   const it=run.list[run.i],q=it.q,ans=run.answers[run.i];
@@ -218,7 +243,7 @@ function show(){
 function pick(oi){
   if(run.answers[run.i]!=null)return;
   const q=run.list[run.i].q,ok=oi===q.a;run.answers[run.i]=oi;
-  const prev=S.res[q.id]||{n:0};S.res[q.id]={ok,n:prev.n+1};save();
+  const prev=S.res[q.id]||{n:0};S.res[q.id]={ok,n:prev.n+1};save();saveRun();
   show();
   const w=document.querySelector(".why");if(w)w.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"nearest"});
 }
@@ -226,21 +251,27 @@ function pick(oi){
 function finish(){
   const n=run.list.length,ok=run.list.filter((it,i)=>run.answers[i]===it.q.a).length,skipped=run.list.filter((it,i)=>run.answers[i]==null).length;
   const wrong=run.list.filter((it,i)=>run.answers[i]!=null&&run.answers[i]!==it.q.a);
-  $("#act").hidden=true;closeCalc();
+  $("#act").hidden=true;closeCalc();clearRun();view="result";try{history.replaceState({v:"result"},"")}catch(e){}
   $("#view").innerHTML=`<div class="lbl">${run.title}</div><div class="score">${ok} / ${n}</div>
    <p class="lede">${skipped?`有 ${skipped} 題未答。`:""}${wrong.length?`錯咗 ${wrong.length} 題，已經加入「錯題重溫」。`:"全對！"}</p>
    ${wrong.length?`<div class="wrongs">${wrong.map(it=>`<div><span>${it.q.kp}</span>${it.q.q}</div>`).join("")}</div>`:""}
    <div class="opts-row" style="margin-top:16px">${wrong.length?'<button class="btn pri" id="redo" type="button">即刻重做錯題</button>':""}<button class="btn" id="back" type="button">返去選題</button></div>`;
   if(wrong.length)$("#redo").addEventListener("click",()=>start("wrong"));
-  $("#back").addEventListener("click",home);pill();window.scrollTo(0,0);
+  $("#back").addEventListener("click",()=>home());pill();window.scrollTo(0,0);
 }
 
-$("#nextB").addEventListener("click",()=>{if(run.i<run.list.length-1){run.i++;show();window.scrollTo(0,0)}else finish()});
-$("#prevB").addEventListener("click",()=>{if(run.i>0){run.i--;show();window.scrollTo(0,0)}});
-$("#homeBtn").addEventListener("click",home);
+$("#nextB").addEventListener("click",()=>{if(!run)return;if(run.i<run.list.length-1){run.i++;saveRun();show();window.scrollTo(0,0)}else finish()});
+$("#prevB").addEventListener("click",()=>{if(run&&run.i>0){run.i--;saveRun();show();window.scrollTo(0,0)}});
+$("#homeBtn").addEventListener("click",()=>home());
+$("#homeB2").addEventListener("click",()=>home());
+/* phone back button / back swipe: close the calculator first, then return to the set list */
+window.addEventListener("popstate",()=>{
+  if($("#sheet").classList.contains("open")){closeCalc();if(view!=="home")try{history.pushState({v:view},"")}catch(e){}return}
+  if(view!=="home")home(true);
+});
 
 /* ---------- calculator ---------- */
-let expr="",ans=0,tape=[];
+let expr="",ans=0,tape=[],justCalc=false; /* justCalc: an operator typed right after = continues from the answer */
 const KEYS=[
  ["(","op","("],[")","op",")"],["xʸ","op fn","^"],["√","op fn","sqrt("],["ln","op fn","ln("],["eˣ","op fn","exp("],
  ["7","","7"],["8","","8"],["9","","9"],["÷","op","÷"],["⌫","op","DEL"],["AC","op","AC"],
@@ -252,12 +283,13 @@ $("#keys").innerHTML=KEYS.map(k=>`<button type="button" class="${k[1]}" data-v="
 $("#keys").addEventListener("click",e=>{const b=e.target.closest("button");if(b)press(b.dataset.v)});
 
 function press(v){
-  if(v==="AC"){expr="";render();return}
+  const cont=justCalc;justCalc=false;
+  if(v==="AC"){expr="";$("#cRs").className="rs";$("#cRs").textContent="0";render();return}
   if(v==="DEL"){expr=expr.replace(/(sqrt\(|ln\(|exp\(|ANS|.)$/,"");render(true);return}
   if(v==="="){calc();return}
   if(v==="÷360"||v==="÷365"){expr=(expr||"ANS")+v.replace("÷","÷");render(true);return}
   if(v==="1/x"){expr="1÷("+(expr||"ANS")+")";render(true);return}
-  if(/^[+−×÷^]$/.test(v)&&expr==="")expr="ANS";
+  if(/^[+−×÷^%]$/.test(v)&&expr===""&&cont)expr="ANS";
   expr+=v;render(true);
 }
 function fmt(x){if(!isFinite(x))return "錯誤";const a=Math.abs(x);if(a!==0&&(a<1e-6||a>=1e15))return x.toExponential(8);return x.toLocaleString("en-US",{maximumFractionDigits:8})}
@@ -268,7 +300,7 @@ function render(live){
 }
 function calc(){
   if(!expr)return;
-  try{const r=evaluate(expr);if(!isFinite(r))throw new Error("計唔到（例如除咗 0）");ans=r;tape.unshift({e:expr,r});tape=tape.slice(0,8);$("#cEx").textContent=expr+" =";$("#cRs").className="rs";$("#cRs").textContent=fmt(r);expr="";drawTape()}
+  try{const r=evaluate(expr);if(!isFinite(r))throw new Error("計唔到（例如除咗 0）");ans=r;tape.unshift({e:expr,r});tape=tape.slice(0,8);justCalc=true;$("#cEx").textContent=expr+" =";$("#cRs").className="rs";$("#cRs").textContent=fmt(r);expr="";drawTape()}
   catch(e){$("#cRs").className="rs err";$("#cRs").textContent=e.message||"算式有錯"}
 }
 function drawTape(){$("#tape").innerHTML=tape.map((t,i)=>`<button type="button" data-i="${i}" title="${t.e.replace(/"/g,"&quot;")}">${fmt(t.r)}</button>`).join("");
@@ -312,6 +344,7 @@ document.addEventListener("keydown",e=>{
   else if(m[e.key]){press(m[e.key]);e.preventDefault()}
 });
 
-home();
+try{history.replaceState({v:"home"},"")}catch(e){}
+home(true);
 })();
 </script>
